@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">5G开关</string>
+    <string name="quick_settings_5g_label">5G网络</string>
+</resources>
