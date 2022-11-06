@@ -7,7 +7,6 @@ import com.highcapable.yukihookapi.hook.factory.configs
 import com.highcapable.yukihookapi.hook.factory.encase
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.param.PackageParam
-import com.highcapable.yukihookapi.hook.type.android.ApplicationClass
 import com.highcapable.yukihookapi.hook.type.java.BooleanType
 import com.highcapable.yukihookapi.hook.xposed.proxy.IYukiHookXposedInit
 import miui.telephony.TelephonyManager
@@ -18,17 +17,21 @@ import miui.telephony.TelephonyManager
 //
 @InjectYukiHookWithXposed
 class HookEntry : IYukiHookXposedInit {
+    companion object {
+        private var hooked = false
+    }
+
     private val telephonyManager by lazy {
         TelephonyManager.getDefault()
     }
 
     override fun onInit() = configs {
-        debugLog { isDebug = false; tag = "FiveGSwitcher" }
+        debugLog { isDebug = BuildConfig.DEBUG; tag = "FiveGSwitcher" }
     }
 
     override fun onHook() = encase {
         loadApp("com.android.phone") { hookFiveGSa() }
-        loadApp("com.android.systemui") { hookSystemUIApp() }
+        loadApp("com.android.systemui") { hookQSTileHost() }
     }
 
     private fun PackageParam.hookFiveGSa() {
@@ -44,11 +47,15 @@ class HookEntry : IYukiHookXposedInit {
         }
     }
 
-    private fun PackageParam.hookSystemUIApp() {
-        ApplicationClass.hook {
+    private fun PackageParam.hookQSTileHost() {
+        "$packageName.qs.QSTileHost".hook {
             injectMember {
-                method { name = "onCreate" }
-                afterHook { if (telephonyManager.isFiveGCapable) hookSyncTile() }
+                method { name = "createTile" }
+                beforeHook {
+                    if (!hooked && args(0).string() == "sync" && telephonyManager.isFiveGCapable) {
+                        hookSyncTile()
+                    }
+                }
             }
         }
     }
@@ -104,6 +111,7 @@ class HookEntry : IYukiHookXposedInit {
                     replaceToModuleResource(R.string.quick_settings_5g_label)
                 }
             }
+            hooked = true
         }
     }
 }
