@@ -3,6 +3,7 @@ package com.qingyu.mi5g
 import android.content.ComponentName
 import android.content.Intent
 import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
+import com.highcapable.yukihookapi.hook.factory.MembersType
 import com.highcapable.yukihookapi.hook.factory.configs
 import com.highcapable.yukihookapi.hook.factory.encase
 import com.highcapable.yukihookapi.hook.factory.method
@@ -17,10 +18,6 @@ import miui.telephony.TelephonyManager
 //
 @InjectYukiHookWithXposed
 class HookEntry : IYukiHookXposedInit {
-    companion object {
-        private var hooked = false
-    }
-
     private val telephonyManager by lazy {
         TelephonyManager.getDefault()
     }
@@ -50,12 +47,8 @@ class HookEntry : IYukiHookXposedInit {
     private fun PackageParam.hookQSTileHost() {
         "$packageName.qs.QSTileHost".hook {
             injectMember {
-                method { name = "createTile" }
-                beforeHook {
-                    if (!hooked && args(0).string() == "sync" && telephonyManager.isFiveGCapable) {
-                        hookSyncTile()
-                    }
-                }
+                allMembers(MembersType.CONSTRUCTOR)
+                afterHook { if (telephonyManager.isFiveGCapable) hookSyncTile() }
             }
         }
     }
@@ -111,7 +104,6 @@ class HookEntry : IYukiHookXposedInit {
                     replaceToModuleResource(R.string.quick_settings_5g_label)
                 }
             }
-            hooked = true
         }
     }
 }
