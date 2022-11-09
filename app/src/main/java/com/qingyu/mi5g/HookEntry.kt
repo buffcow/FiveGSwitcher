@@ -3,7 +3,7 @@ package com.qingyu.mi5g
 import android.content.ComponentName
 import android.content.Intent
 import com.highcapable.yukihookapi.annotation.xposed.InjectYukiHookWithXposed
-import com.highcapable.yukihookapi.hook.factory.MembersType
+import com.highcapable.yukihookapi.hook.core.YukiMemberHookCreator
 import com.highcapable.yukihookapi.hook.factory.configs
 import com.highcapable.yukihookapi.hook.factory.encase
 import com.highcapable.yukihookapi.hook.factory.method
@@ -28,7 +28,7 @@ class HookEntry : IYukiHookXposedInit {
 
     override fun onHook() = encase {
         loadApp("com.android.phone") { hookFiveGSa() }
-        loadApp("com.android.systemui") { hookQSTileHost() }
+        loadApp("com.android.systemui") { hookSyncTile() }
     }
 
     private fun PackageParam.hookFiveGSa() {
@@ -44,65 +44,70 @@ class HookEntry : IYukiHookXposedInit {
         }
     }
 
-    private fun PackageParam.hookQSTileHost() {
-        "$packageName.qs.QSTileHost".hook {
+    private fun PackageParam.hookSyncTile() {
+        "$packageName.qs.tiles.SyncTile".hook {
             injectMember {
-                allMembers(MembersType.CONSTRUCTOR)
-                afterHook { if (telephonyManager.isFiveGCapable) hookSyncTile() }
+                method { name = "isAvailable" }
+                replaceAny {
+                    telephonyManager.isFiveGCapable.also {
+                        if (it) {
+                            hookSyncTileRes()
+                            replaceToFiveGTile()
+                        }
+                    }
+                }
             }
         }
     }
 
-    private fun PackageParam.hookSyncTile() {
-        "$packageName.qs.tiles.SyncTile".hook {
-            injectMember { method { name = "isAvailable" }; replaceToTrue() }
+    private fun YukiMemberHookCreator.replaceToFiveGTile() {
+        injectMember { method { name = "handleSetListening" }; intercept() }
 
-            injectMember { method { name = "handleSetListening" }; intercept() }
+        injectMember {
+            method { name = "isSyncOn" }
+            replaceAny { telephonyManager.isUserFiveGEnabled }
+        }
 
-            injectMember {
-                method { name = "isSyncOn" }
-                replaceAny { telephonyManager.isUserFiveGEnabled }
+        injectMember {
+            method { name = "handleClick" }
+            replaceUnit {
+                telephonyManager.isUserFiveGEnabled = !telephonyManager.isUserFiveGEnabled
+                instance.javaClass.method {
+                    name = "refreshState"; superClass(true)
+                }.get(instance).call()
             }
+        }
 
-            injectMember {
-                method { name = "handleClick" }
-                replaceUnit {
-                    telephonyManager.isUserFiveGEnabled = !telephonyManager.isUserFiveGEnabled
-                    instance.javaClass.method {
-                        name = "refreshState"; superClass(true)
-                    }.get(instance).call()
+        injectMember {
+            method { name = "getLongClickIntent" }
+            replaceAny {
+                Intent(Intent.ACTION_MAIN).apply {
+                    component = ComponentName(
+                        "com.android.phone",
+                        "com.android.phone.settings.PreferredNetworkTypeListPreference"
+                    )
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK xor Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }
             }
+        }
+    }
 
-            injectMember {
-                method { name = "getLongClickIntent" }
-                replaceAny {
-                    Intent(Intent.ACTION_MAIN).apply {
-                        component = ComponentName(
-                            "com.android.phone",
-                            "com.android.phone.settings.PreferredNetworkTypeListPreference"
-                        )
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK xor Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    }
-                }
-            }
-
-            resources().hook {
-                listOf("qs", "cc_qs").forEach {
-                    injectResource {
-                        conditions { name = "ic_${it}_sync_on"; drawable() }
-                        replaceToModuleResource(R.drawable.ic_qs_5g_on)
-                    }
-                    injectResource {
-                        conditions { name = "ic_${it}_sync_off"; drawable() }
-                        replaceToModuleResource(R.drawable.ic_qs_5g_off)
-                    }
-                }
-
+    private fun PackageParam.hookSyncTileRes() {
+        resources().hook {
+            listOf("qs", "cc_qs").forEach {
                 injectResource {
-                    conditions { name = "quick_settings_sync_label"; string() }
-                    replaceToModuleResource(R.string.quick_settings_5g_label)
+                    conditions { name = "ic_${it}_sync_on"; drawable() }
+                    replaceToModuleResource(R.drawable.ic_qs_5g_on)
                 }
+                injectResource {
+                    conditions { name = "ic_${it}_sync_off"; drawable() }
+                    replaceToModuleResource(R.drawable.ic_qs_5g_off)
+                }
+            }
+
+            injectResource {
+                conditions { name = "quick_settings_sync_label"; string() }
+                replaceToModuleResource(R.string.quick_settings_5g_label)
             }
         }
     }
