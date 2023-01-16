@@ -11,7 +11,7 @@
 
         <meta-data
             android:name="xposeddescription"
-            android:value="仅适用于MIUI，在状态栏的快捷开关中添加5G开关\n酷安@yangyiyu08" />
+            android:resource="@string/xposed_description" />
 
         <meta-data
             android:name="xposedminversion"
