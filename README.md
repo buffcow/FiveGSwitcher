@@ -1,2 +1,2 @@
 # FiveGSwitcher
-在MIUI状态栏的快捷开关中添加5G开关
+在MIUI状态栏的移动网络面板中添加5G开关
