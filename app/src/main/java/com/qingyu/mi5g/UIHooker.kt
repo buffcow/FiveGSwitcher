@@ -19,9 +19,14 @@ internal object UIHooker : BaseHooker() {
     }
 
     private fun hookControlCenter() {
-        "$packageName.miui.controlcenter.QSControlDetail".hook {
+        var controlDetailClassName = "$packageName.miui.controlcenter.QSControlDetail"
+        if (!controlDetailClassName.hasClass()) {
+            //MIUI12.5 or old MIUI13
+            controlDetailClassName = "$packageName.controlcenter.phone.detail.QSControlDetail"
+        }
+        controlDetailClassName.hook {
             hookDetailHeaderView("qs_control_detail_header") //MIUI12 Control center
-        }.onHookClassNotFoundFailure { hookPluginController() } //MIUI13 Control center plugin
+        }.onHookClassNotFoundFailure { hookPluginController() } //MIUI13+ Control center plugin
     }
 
     private fun hookPluginController() {
