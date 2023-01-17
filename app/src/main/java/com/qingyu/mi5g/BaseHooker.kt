@@ -90,6 +90,7 @@ abstract class BaseHooker : YukiBaseHooker() {
             toggle.setOnCheckedChangeListener { _, isChecked ->
                 telephonyManager.isUserFiveGEnabled = isChecked
             }
+            setPadding(paddingLeft, paddingTop, paddingRight, paddingLeft - 10)
             if (childCount > 3) fixHeaderWeight(title)
         }
     }
