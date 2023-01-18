@@ -19,14 +19,16 @@ internal object UIHooker : BaseHooker() {
     }
 
     private fun hookControlCenter() {
-        var controlDetailClassName = "$packageName.miui.controlcenter.QSControlDetail"
+        var controlDetailClassName = "$packageName.miui.controlcenter.QSControlDetail" //MIUI12
         if (!controlDetailClassName.hasClass()) {
             //MIUI12.5 or old MIUI13
             controlDetailClassName = "$packageName.controlcenter.phone.detail.QSControlDetail"
         }
         controlDetailClassName.hook {
-            hookDetailHeaderView("qs_control_detail_header") //MIUI12 Control center
-        }.onHookClassNotFoundFailure { hookPluginController() } //MIUI13+ Control center plugin
+            hookDetailHeaderView("qs_control_detail_header") //Control center
+        }.ignoredHookClassNotFoundFailure() //ignored class of MIUI14+
+
+        hookPluginController() //MIUI13+ Control center plugin
     }
 
     private fun hookPluginController() {
@@ -45,7 +47,7 @@ internal object UIHooker : BaseHooker() {
                         ).hook { hookDetailHeaderView("detail_header") }
                     }
                 }
-            }
-        }
+            }.ignoredNoSuchMemberFailure() //ignored member of MIUI12.5
+        }.ignoredHookClassNotFoundFailure() //ignored class of MIUI12
     }
 }
