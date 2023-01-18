@@ -54,7 +54,9 @@ abstract class BaseHooker : YukiBaseHooker() {
 
                 if (!isCellularTile(args(0).any())) return@afterHook
 
-                container.runCatching { addView(headerView, 1) }.onFailure {
+                container.runCatching {
+                    addView(headerView?.also { it.refreshToggleState() }, 1)
+                }.onFailure {
                     // create or IllegalStateException
                     container.addView(
                         createHeaderView(container.context, headerLayoutName).also {
@@ -86,6 +88,7 @@ abstract class BaseHooker : YukiBaseHooker() {
             val toggle = this.findViewById(android.R.id.toggle) ?: this.let {
                 (it.getChildAt(it.childCount - 1) as ViewStub).inflate() as CheckBox
             }
+            toggle.id = android.R.id.toggle
             toggle.isChecked = telephonyManager.isUserFiveGEnabled
             toggle.setOnCheckedChangeListener { _, isChecked ->
                 telephonyManager.isUserFiveGEnabled = isChecked
@@ -93,6 +96,10 @@ abstract class BaseHooker : YukiBaseHooker() {
             setPadding(paddingLeft, paddingTop, paddingRight, paddingLeft - 10)
             if (childCount > 3) fixHeaderWeight(title)
         }
+    }
+
+    private fun View.refreshToggleState() {
+        findViewById<CheckBox>(android.R.id.toggle).isChecked = telephonyManager.isUserFiveGEnabled
     }
 
     private fun ViewGroup.fixHeaderWeight(title: TextView) {
