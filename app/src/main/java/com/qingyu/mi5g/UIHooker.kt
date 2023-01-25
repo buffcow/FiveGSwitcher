@@ -13,8 +13,8 @@ internal object UIHooker : BaseHooker() {
     }
 
     private fun hookQSDetail() {
-        var detailClassName = "$packageName.qs.MiuiQSDetail" //MIUI12
-        if (!detailClassName.hasClass()) detailClassName = "$packageName.qs.QSDetail" //MIUI13+
+        var detailClassName = "$packageName.qs.MiuiQSDetail" //MIUI13+
+        if (!detailClassName.hasClass()) detailClassName = "$packageName.qs.QSDetail" //MIUI12
         detailClassName.hook { hookDetailHeaderView("qs_detail_header") }
     }
 
