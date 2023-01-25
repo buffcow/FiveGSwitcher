@@ -1,6 +1,7 @@
 package com.qingyu.mi5g
 
 import com.highcapable.yukihookapi.hook.factory.field
+import de.robv.android.xposed.XposedHelpers
 
 
 //
@@ -10,6 +11,7 @@ internal object UIHooker : BaseHooker() {
     override fun onHook() {
         hookQSDetail() //old style
         hookControlCenter() //new style
+        hookCellularTile() //fro single sim card
     }
 
     private fun hookQSDetail() {
@@ -49,5 +51,27 @@ internal object UIHooker : BaseHooker() {
                 }
             }.ignoredNoSuchMemberFailure() //ignored member of MIUI12.5
         }.ignoredHookClassNotFoundFailure() //ignored class of MIUI12
+    }
+
+    private fun hookCellularTile() {
+        var tileClassName = "$packageName.qs.tiles.MiuiCellularTile" //MIUI12.5+
+        if (!tileClassName.hasClass()) {
+            tileClassName = "$packageName.qs.tiles.CellularTile" //MIUI12
+        }
+        tileClassName.hook {
+            injectMember {
+                method { name = "handleUpdateState"; paramCount = 2 }
+                afterHook {
+                    if (!telephonyManager.isFiveGCapable) {
+                        removeSelf(); return@afterHook
+                    }
+                    args(0).any()?.let {
+                        if (XposedHelpers.getIntField(it, "state") != 0) {
+                            XposedHelpers.setBooleanField(it, "dualTarget", true)
+                        }
+                    }
+                }
+            }
+        }
     }
 }

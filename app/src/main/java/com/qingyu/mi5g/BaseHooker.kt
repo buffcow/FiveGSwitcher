@@ -23,7 +23,7 @@ import java.util.Locale
 abstract class BaseHooker : YukiBaseHooker() {
     private val headerViewCache = mutableMapOf<String, View?>()
 
-    private val telephonyManager: TelephonyManager by lazy {
+    protected val telephonyManager: TelephonyManager by lazy {
         TelephonyManager.getDefault()
     }
 
