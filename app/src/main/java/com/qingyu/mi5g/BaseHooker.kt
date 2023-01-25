@@ -33,13 +33,14 @@ abstract class BaseHooker : YukiBaseHooker() {
             return if (s.contains("zh")) "5G网络" else "5G Network"
         }
 
+    private var configurationChanged = false
+
     protected fun YukiMemberHookCreator.hookDetailHeaderView(headerLayoutName: String) {
         injectMember {
             method { name = "setupDetailHeader"; paramCount = 1 }
             afterHook {
                 if (!telephonyManager.isFiveGCapable) {
-                    removeSelf()
-                    return@afterHook
+                    removeSelf(); return@afterHook
                 }
 
                 val container =
@@ -55,6 +56,9 @@ abstract class BaseHooker : YukiBaseHooker() {
                 if (!isCellularTile(args(0).any())) return@afterHook
 
                 container.runCatching {
+                    if (configurationChanged) {
+                        configurationChanged = false; throw IllegalStateException()
+                    }
                     addView(headerView?.also { it.refreshToggleState() }, 1)
                 }.onFailure {
                     // create or IllegalStateException
@@ -65,6 +69,11 @@ abstract class BaseHooker : YukiBaseHooker() {
                     )
                 }
             }
+        }
+
+        injectMember {
+            method { name = "onConfigurationChanged"; paramCount = 1; superClass() }
+            afterHook { configurationChanged = true }
         }
     }
 
