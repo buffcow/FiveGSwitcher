@@ -13,8 +13,8 @@ android {
     defaultConfig {
         minSdk = 24
         targetSdk = 33
-        versionCode = 8
-        versionName = "1.8"
+        versionCode = 9
+        versionName = "1.9"
         applicationId = android.namespace
     }
 
