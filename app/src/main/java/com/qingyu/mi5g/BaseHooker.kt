@@ -1,7 +1,6 @@
 package com.qingyu.mi5g
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
@@ -51,22 +50,21 @@ abstract class BaseHooker : YukiBaseHooker() {
 
                 val headerView = headerViewCache[headerLayoutName]
 
-                headerView?.let { container.removeView(it) } //Must remove and add again
+                headerView?.let { (it.parent as ViewGroup).removeView(it) } //Must remove and add again
 
                 if (!isCellularTile(args(0).any())) return@afterHook
 
-                container.runCatching {
-                    if (configurationChanged) {
-                        configurationChanged = false; throw IllegalStateException()
-                    }
-                    addView(headerView?.also { it.refreshToggleState() }, 1)
-                }.onFailure {
-                    // create or IllegalStateException
+                if (headerView != null && !configurationChanged) {
+                    headerView.refreshToggleState()
+                    container.addView(headerView, 1)
+                } else {
+                    // create a new headerview
                     container.addView(
-                        createHeaderView(container.context, headerLayoutName).also {
+                        createHeaderView(container, headerLayoutName).also {
                             headerViewCache[headerLayoutName] = it
                         }, 1
                     )
+                    if (configurationChanged) configurationChanged = false
                 }
             }
         }
@@ -88,31 +86,22 @@ abstract class BaseHooker : YukiBaseHooker() {
     }
 
     @SuppressLint("DiscouragedApi")
-    private fun createHeaderView(context: Context, lname: String): View {
+    private fun createHeaderView(container: ViewGroup, lname: String): View {
+        val context = container.context
         val res = context.resources.getIdentifier(lname, "layout", context.packageName)
-        return LayoutInflater.from(context).inflate(res, null).apply {
-            val title = ((this as ViewGroup).getChildAt(0) as TextView).apply {
-                text = switchTitle
-            }
-            val toggle = this.findViewById(android.R.id.toggle) ?: this.let {
-                (it.getChildAt(it.childCount - 1) as ViewStub).inflate() as CheckBox
-            }
+        return (LayoutInflater.from(context).inflate(res, container, false) as LinearLayout).apply {
+            (getChildAt(0) as TextView).apply { text = switchTitle }
+            val toggle = findViewById(android.R.id.toggle)
+                ?: (getChildAt(childCount - 1) as ViewStub).inflate() as CheckBox
             toggle.id = android.R.id.toggle
             toggle.isChecked = telephonyManager.isUserFiveGEnabled
             toggle.setOnCheckedChangeListener { _, isChecked ->
                 telephonyManager.isUserFiveGEnabled = isChecked
             }
-            setPadding(paddingLeft, paddingTop, paddingRight, paddingLeft - 10)
-            if (childCount > 3) fixHeaderWeight(title)
         }
     }
 
     private fun View.refreshToggleState() {
         findViewById<CheckBox>(android.R.id.toggle).isChecked = telephonyManager.isUserFiveGEnabled
-    }
-
-    private fun ViewGroup.fixHeaderWeight(title: TextView) {
-        title.layoutParams = LinearLayout.LayoutParams(0, -2).apply { weight = 1.0f }
-        removeViewAt(1)
     }
 }
