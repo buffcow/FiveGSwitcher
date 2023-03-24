@@ -11,7 +11,7 @@ internal object UIHooker : BaseHooker() {
     override fun onHook() {
         hookQSDetail() //old style
         hookControlCenter() //new style
-        hookCellularTile() //fro single sim card
+        hookCellularTile() //for single sim card
     }
 
     private fun hookQSDetail() {
