@@ -1,9 +1,17 @@
 @file:Suppress("UnstableApiUsage")
 
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("com.google.devtools.ksp")
     id("org.jetbrains.kotlin.android")
+}
+
+val prop by lazy {
+    Properties().apply {
+        load(rootProject.file("local.properties").inputStream())
+    }
 }
 
 android {
@@ -18,6 +26,16 @@ android {
         applicationId = android.namespace
     }
 
+    signingConfigs {
+        create("release") {
+            enableV3Signing = true
+            storeFile = file(prop.getProperty("sign.storeFile"))
+            keyAlias = prop.getProperty("sign.keyAlias")
+            keyPassword = prop.getProperty("sign.storePassword")
+            storePassword = prop.getProperty("sign.storePassword")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -26,7 +44,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
