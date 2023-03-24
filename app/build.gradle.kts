@@ -13,8 +13,8 @@ android {
     defaultConfig {
         minSdk = 24
         targetSdk = 33
-        versionCode = 9
-        versionName = "1.9"
+        versionCode = 10
+        versionName = "2.0"
         applicationId = android.namespace
     }
 
@@ -41,7 +41,7 @@ android {
 dependencies {
     compileOnly("de.robv.android.xposed:api:82")
     compileOnly(files("libs/telephony.jar"))
-    ksp("com.highcapable.yukihookapi:ksp-xposed:1.1.5")
-    implementation("androidx.annotation:annotation:1.5.0")
-    implementation("com.highcapable.yukihookapi:api:1.1.5")
+    ksp("com.highcapable.yukihookapi:ksp-xposed:1.1.8")
+    implementation("androidx.annotation:annotation:1.6.0")
+    implementation("com.highcapable.yukihookapi:api:1.1.8")
 }
