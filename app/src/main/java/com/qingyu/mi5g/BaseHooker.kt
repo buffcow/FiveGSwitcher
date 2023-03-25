@@ -5,6 +5,8 @@ import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+import android.view.ViewGroup.MarginLayoutParams
 import android.view.ViewStub
 import android.widget.CheckBox
 import android.widget.LinearLayout
@@ -52,10 +54,11 @@ abstract class BaseHooker : YukiBaseHooker() {
 
                 headerView?.let { (it.parent as ViewGroup).removeView(it) } //Must remove and add again
 
-                if (!isCellularTile(args(0).any())) return@afterHook
+                val detailAdapter = args(0).any()
+                if (!isCellularTile(detailAdapter)) return@afterHook
 
                 if (headerView != null && !configurationChanged) {
-                    headerView.refreshToggleState()
+                    refreshToggleState(headerView)
                     container.addView(headerView, 1)
                 } else {
                     // create a new headerview
@@ -65,6 +68,10 @@ abstract class BaseHooker : YukiBaseHooker() {
                         }, 1
                     )
                     if (configurationChanged) configurationChanged = false
+                }
+
+                hookDetailAdapter(detailAdapter) {
+                    headerViewCache[headerLayoutName]?.let { refreshToggleState(it) }
                 }
             }
         }
@@ -87,10 +94,10 @@ abstract class BaseHooker : YukiBaseHooker() {
 
     @SuppressLint("DiscouragedApi")
     private fun createHeaderView(container: ViewGroup, lname: String): View {
+        fixHeaderViewParams(container.getChildAt(0))
         val context = container.context
         val res = context.resources.getIdentifier(lname, "layout", context.packageName)
         return (LayoutInflater.from(context).inflate(res, container, false) as LinearLayout).apply {
-            (getChildAt(0) as TextView).apply { text = switchTitle }
             val toggle = findViewById(android.R.id.toggle)
                 ?: (getChildAt(childCount - 1) as ViewStub).inflate() as CheckBox
             toggle.id = android.R.id.toggle
@@ -98,10 +105,49 @@ abstract class BaseHooker : YukiBaseHooker() {
             toggle.setOnCheckedChangeListener { _, isChecked ->
                 telephonyManager.isUserFiveGEnabled = isChecked
             }
+            (getChildAt(0) as TextView).apply { text = switchTitle }
+            fixHeaderViewParams(this.also { it.id = 0 /* mark */ })
         }
     }
 
-    private fun View.refreshToggleState() {
-        findViewById<CheckBox>(android.R.id.toggle).isChecked = telephonyManager.isUserFiveGEnabled
+    private fun fixHeaderViewParams(v: View) {
+        (v as LinearLayout).let { header ->
+            // fix height of root
+            val params = header.layoutParams as MarginLayoutParams
+            if (params.height != WRAP_CONTENT) {
+                header.layoutParams = params.apply {
+                    height = WRAP_CONTENT
+                    if (bottomMargin == 0) {
+                        if (header.id != 0)
+                            setMargins(marginStart, 18, marginEnd, 0)
+                        else // marked
+                            setMargins(marginStart, 0, marginEnd, 18)
+                    }
+                }
+            }
+
+            // fix weight of textview
+            val view = header.getChildAt(1)
+            if (view::class.simpleName == View::class.simpleName) {
+                header.getChildAt(0).layoutParams = view.layoutParams
+                header.removeView(view)
+            }
+        }
+    }
+
+    private fun hookDetailAdapter(detailAdapter: Any?, after: () -> Unit) {
+        detailAdapter?.let {
+            it.javaClass.hook {
+                injectMember {
+                    method { name = "onDetailItemClick"; paramCount = 1 }
+                    afterHook { after.invoke() }
+                }
+            }
+        }
+    }
+
+    private fun refreshToggleState(headerView: View) {
+        headerView.findViewById<CheckBox>(android.R.id.toggle).isChecked =
+            telephonyManager.isUserFiveGEnabled
     }
 }
