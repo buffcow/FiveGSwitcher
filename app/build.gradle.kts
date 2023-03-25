@@ -3,9 +3,9 @@
 import java.util.Properties
 
 plugins {
+    kotlin("android")
     id("com.android.application")
     id("com.google.devtools.ksp")
-    id("org.jetbrains.kotlin.android")
 }
 
 val prop by lazy {
@@ -21,8 +21,8 @@ android {
     defaultConfig {
         minSdk = 24
         targetSdk = 33
-        versionCode = 10
-        versionName = "2.0"
+        versionCode = 11
+        versionName = "2.0.1"
         applicationId = android.namespace
     }
 
