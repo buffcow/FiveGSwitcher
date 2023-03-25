@@ -52,7 +52,7 @@ abstract class BaseHooker : YukiBaseHooker() {
 
                 val headerView = headerViewCache[headerLayoutName]
 
-                headerView?.let { (it.parent as ViewGroup).removeView(it) } //Must remove and add again
+                headerView?.let { (it.parent as? ViewGroup)?.removeView(it) } //Must remove and add again
 
                 val detailAdapter = args(0).any()
                 if (!isCellularTile(detailAdapter)) return@afterHook
