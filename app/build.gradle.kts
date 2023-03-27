@@ -1,5 +1,6 @@
 @file:Suppress("UnstableApiUsage")
 
+import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 import java.util.Properties
 
 plugins {
@@ -21,8 +22,8 @@ android {
     defaultConfig {
         minSdk = 24
         targetSdk = 33
-        versionCode = 11
-        versionName = "2.0.1"
+        versionCode = 12
+        versionName = "2.0.2"
         applicationId = android.namespace
     }
 
@@ -53,6 +54,16 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
+    }
+
+    applicationVariants.all {
+        outputs.all {
+            val appName = rootProject.name
+            val versionName = android.defaultConfig.versionName
+            val versionCode = android.defaultConfig.versionCode
+            val newApkName = "$appName-$versionName($versionCode).apk"
+            (this as BaseVariantOutputImpl).outputFileName = newApkName
+        }
     }
 }
 
