@@ -6,7 +6,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-import android.view.ViewGroup.MarginLayoutParams
 import android.view.ViewStub
 import android.widget.CheckBox
 import android.widget.LinearLayout
@@ -16,6 +15,7 @@ import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.method
 import miui.telephony.TelephonyManager
 import java.util.Locale
+import kotlin.math.roundToInt
 
 
 //
@@ -94,7 +94,6 @@ abstract class BaseHooker : YukiBaseHooker() {
 
     @SuppressLint("DiscouragedApi")
     private fun createHeaderView(container: ViewGroup, lname: String): View {
-        fixHeaderViewParams(container.getChildAt(0))
         val context = container.context
         val res = context.resources.getIdentifier(lname, "layout", context.packageName)
         return (LayoutInflater.from(context).inflate(res, container, false) as LinearLayout).apply {
@@ -106,23 +105,24 @@ abstract class BaseHooker : YukiBaseHooker() {
                 telephonyManager.isUserFiveGEnabled = isChecked
             }
             (getChildAt(0) as TextView).apply { text = switchTitle }
-            fixHeaderViewParams(this.also { it.id = 0 /* mark */ })
+            fixHeaderViewParams(this)
         }
     }
 
     private fun fixHeaderViewParams(v: View) {
         (v as LinearLayout).let { header ->
-            // fix height of root
-            val params = header.layoutParams as MarginLayoutParams
-            if (params.height != WRAP_CONTENT) {
+            // fix bottomMargin of root
+            val params = header.layoutParams as LinearLayout.LayoutParams
+            if (params.bottomMargin == 0) {
+                val margin by lazy {
+                    val density = header.context.resources.displayMetrics.density
+                    (18 * density).roundToInt()
+                }
+
                 header.layoutParams = params.apply {
                     height = WRAP_CONTENT
-                    if (bottomMargin == 0) {
-                        if (header.id != 0)
-                            setMargins(marginStart, 18, marginEnd, 0)
-                        else // marked
-                            setMargins(marginStart, 0, marginEnd, 18)
-                    }
+                    val mb = if (header.paddingStart > 0) header.paddingStart - 10 else margin
+                    setMargins(marginStart, 0, marginEnd, mb)
                 }
             }
 
