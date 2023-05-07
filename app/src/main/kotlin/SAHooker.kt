@@ -1,5 +1,4 @@
-package com.qingyu.mi5g
-
+import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.type.java.BooleanType
 
@@ -7,7 +6,7 @@ import com.highcapable.yukihookapi.hook.type.java.BooleanType
 //
 // Created by yangyiyu08 on 2023-01-15.
 //
-internal object SAHooker : BaseHooker() {
+internal object SAHooker : YukiBaseHooker() {
     override fun onHook() {
         "$packageName.FiveGManager".hook {
             injectMember {

@@ -22,8 +22,8 @@ android {
     defaultConfig {
         minSdk = 24
         targetSdk = 33
-        versionCode = 12
-        versionName = "2.0.2"
+        versionCode = 13
+        versionName = "2.0.3"
         applicationId = android.namespace
     }
 
@@ -48,20 +48,28 @@ android {
             signingConfig = signingConfigs.getByName("release")
         }
     }
+
+    flavorDimensions += listOf("mode")
+    productFlavors {
+        listOf("tile", "panel").forEach { create(it) }
+    }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    buildFeatures {
+        buildConfig = true
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
 
     applicationVariants.all {
         outputs.all {
             val appName = rootProject.name
-            val versionName = android.defaultConfig.versionName
-            val versionCode = android.defaultConfig.versionCode
-            val newApkName = "$appName-$versionName($versionCode).apk"
+            val flavor = name.split("-").first()
+            val newApkName = "$appName-${versionName}_$versionCode-$flavor.apk"
             (this as BaseVariantOutputImpl).outputFileName = newApkName
         }
     }
@@ -70,7 +78,7 @@ android {
 dependencies {
     compileOnly("de.robv.android.xposed:api:82")
     compileOnly(files("libs/telephony.jar"))
-    ksp("com.highcapable.yukihookapi:ksp-xposed:1.1.8")
+    ksp("com.highcapable.yukihookapi:ksp-xposed:1.1.11")
     implementation("androidx.annotation:annotation:1.6.0")
-    implementation("com.highcapable.yukihookapi:api:1.1.8")
+    implementation("com.highcapable.yukihookapi:api:1.1.11")
 }
