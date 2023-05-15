@@ -62,7 +62,13 @@ internal object UIHooker : YukiBaseHooker() {
             .toClassOrNull() ?: "$packageName.qs.QSTileHost".toClass() /* MIUI 12 */).hook {
             injectMember {
                 method { name = "getQsStockTiles"; emptyParam() }
-                afterHook { result = "${result<String>()},$fiveGSpec" }
+                afterHook {
+                    val stocks = result<String>()!!
+                    // maybe duplicate 5g tile
+                    if (stocks.endsWith(fiveGSpec).not()) {
+                        result = "$result,$fiveGSpec"
+                    }
+                }
             }.ignoredNoSuchMemberFailure() // ignored for MIUI 14
         }
     }
