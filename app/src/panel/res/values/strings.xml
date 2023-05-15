@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">5G Switcher</string>
+    <string name="fiveg_switch_title">5G Network</string>
+    <string name="xposed_description">For MIUI only, add 5G switch in the mobile network panel.\ncoolapk@yangyiyu08</string>
+</resources>

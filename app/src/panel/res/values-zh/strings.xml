@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">5G开关</string>
+    <string name="fiveg_switch_title">5G 网络</string>
+    <string name="xposed_description">仅适用于MIUI，在移动网络面板中添加5G开关\n酷安@yangyiyu08</string>
+</resources>

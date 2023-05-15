@@ -1,4 +1,3 @@
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
@@ -11,9 +10,9 @@ import com.highcapable.yukihookapi.hook.core.YukiMemberHookCreator
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.field
 import com.highcapable.yukihookapi.hook.factory.method
+import com.qingyu.mi5g.R
 import de.robv.android.xposed.XposedHelpers
 import miui.telephony.TelephonyManager
-import java.util.Locale
 import kotlin.math.roundToInt
 
 
@@ -23,15 +22,9 @@ import kotlin.math.roundToInt
 internal object UIHooker : YukiBaseHooker() {
     private val headerViewCache = mutableMapOf<String, View?>()
 
-    private val telephonyManager: TelephonyManager by lazy {
+    private val telephonyManager by lazy {
         TelephonyManager.getDefault()
     }
-
-    private val switchTitle: String
-        get() {
-            val s = Locale.getDefault().language.lowercase()
-            return if (s.contains("zh")) "5G网络" else "5G Network"
-        }
 
     private var configurationChanged = false
 
@@ -89,9 +82,6 @@ internal object UIHooker : YukiBaseHooker() {
             injectMember {
                 method { name = "handleUpdateState"; paramCount = 2 }
                 afterHook {
-                    if (!telephonyManager.isFiveGCapable) {
-                        removeSelf(); return@afterHook
-                    }
                     args(0).any()?.let {
                         if (XposedHelpers.getIntField(it, "state") != 0) {
                             XposedHelpers.setBooleanField(it, "dualTarget", true)
@@ -106,15 +96,10 @@ internal object UIHooker : YukiBaseHooker() {
         injectMember {
             method { name = "setupDetailHeader"; paramCount = 1 }
             afterHook {
-                if (!telephonyManager.isFiveGCapable) {
-                    removeSelf(); return@afterHook
-                }
-
-                val container =
-                    if (instance !is ViewGroup) instance.javaClass.method {
-                        name = "getView"; superClass(true)
-                    }.get(instance).invoke<ViewGroup>()!!.getChildAt(0) as ViewGroup //MIUI13+
-                    else (instance as ViewGroup).getChildAt(0) as ViewGroup //MIUI12
+                val container = if (instance !is ViewGroup) method {
+                    name = "getView"; superClass(true)
+                }.get(instance).invoke<ViewGroup>()!!.getChildAt(0) as ViewGroup //MIUI13+
+                else (instance as ViewGroup).getChildAt(0) as ViewGroup //MIUI12
 
                 val headerView = headerViewCache[headerLayoutName]
 
@@ -152,13 +137,13 @@ internal object UIHooker : YukiBaseHooker() {
         detailAdapter?.let {
             val intent = it.javaClass.method {
                 name = "getSettingsIntent"
-            }.get(detailAdapter).call() as Intent? ?: return false
+            }.get(detailAdapter).invoke<Intent?>() ?: return false
             return intent.component?.packageName == "com.android.phone"
         }
         return false
     }
 
-    @SuppressLint("DiscouragedApi")
+    @Suppress("DiscouragedApi")
     private fun createHeaderView(container: ViewGroup, lname: String): View {
         val context = container.context
         val res = context.resources.getIdentifier(lname, "layout", context.packageName)
@@ -170,7 +155,9 @@ internal object UIHooker : YukiBaseHooker() {
             toggle.setOnCheckedChangeListener { _, isChecked ->
                 telephonyManager.isUserFiveGEnabled = isChecked
             }
-            (getChildAt(0) as TextView).apply { text = switchTitle }
+            (getChildAt(0) as TextView).apply {
+                text = moduleAppResources.getString(R.string.fiveg_switch_title)
+            }
             fixHeaderViewParams(this)
         }
     }

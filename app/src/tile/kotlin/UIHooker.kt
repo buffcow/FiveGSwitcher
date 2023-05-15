@@ -5,9 +5,11 @@ import com.highcapable.yukihookapi.hook.factory.constructor
 import com.highcapable.yukihookapi.hook.factory.current
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.log.loggerW
+import com.highcapable.yukihookapi.hook.type.android.ApplicationClass
 import com.highcapable.yukihookapi.hook.type.android.DrawableClass
 import com.highcapable.yukihookapi.hook.type.java.StringClass
 import com.qingyu.mi5g.R
+import de.robv.android.xposed.XposedHelpers.callMethod
 import miui.telephony.TelephonyManager
 
 
@@ -22,56 +24,59 @@ internal object UIHooker : YukiBaseHooker() {
     }
 
     override fun onHook() {
+        hookTileStocks()
+        hookCreateTile()
+        hookProxyTile()
+    }
+
+    private fun hookTileStocks() {
+        // MIUI 14+
+        ApplicationClass.hook {
+            injectMember {
+                method { name = "onCreate"; emptyParam() }
+                fun injectStockRes() {
+                    fun getString(resName: String): String? = appResources!!.let {
+                        @Suppress("DiscouragedApi")
+                        val id = it.getIdentifier(resName, "string", packageName)
+                        if (id != 0) it.getString(id) else null
+                    }
+
+                    resources().hook {
+                        listOf("miui_%s", "miui_%s_pad").forEach {
+                            val resName = String.format(it, "quick_settings_tiles_stock")
+                            getString(resName)?.let {
+                                injectResource {
+                                    conditions { name = resName; string() }
+                                    replaceTo("$it,$fiveGSpec")
+                                }
+                            } ?: loggerW(msg = "ignored hook res R.string.$resName")
+                        }
+                    }
+                }
+                afterHook { injectStockRes() }
+            }
+        }
+
+        // MIUI 12+
+        ("$packageName.controlcenter.qs.MiuiQSTileHostInjector" // MIUI 12.5+
+            .toClassOrNull() ?: "$packageName.qs.QSTileHost".toClass() /* MIUI 12 */).hook {
+            injectMember {
+                method { name = "getQsStockTiles"; emptyParam() }
+                afterHook { result = "${result<String>()},$fiveGSpec" }
+            }.ignoredNoSuchMemberFailure() // ignored for MIUI 14
+        }
+    }
+
+    private fun hookCreateTile() {
         "$packageName.qs.QSTileHost".hook {
-            val injectCreateTile = injectMember {
+            injectMember {
                 method { name = "createTile"; param(StringClass) }
                 afterHook {
                     if (args(0).string() != fiveGSpec) return@afterHook
                     args(0).set("sync")
                     result = callOriginal()?.also {
-                        it.current().method {
-                            name = "setTileSpec"
-                            param(StringClass)
-                            superClass(true)
-                        }.call(fiveGSpec)
+                        callMethod(it, "setTileSpec", fiveGSpec)
                     }
-                }
-            }
-            val injectQsStockTiles = injectMember {
-                method { name = "getQsStockTiles" }
-                afterHook { result = "${result<String>()},$fiveGSpec" }
-            }.ignoredNoSuchMemberFailure() //ignored for MIUI12.5+
-
-            fun injectQsStockTilesRes() { // hook res for MIUI12.5+
-                fun getString(resName: String): String? = appResources!!.let {
-                    @Suppress("DiscouragedApi")
-                    val id = it.getIdentifier(resName, "string", packageName)
-                    if (id != 0) it.getString(id) else null
-                }
-
-                resources().hook {
-                    listOf("miui_%s", "miui_%s_pad").forEach {
-                        val resName = String.format(it, "quick_settings_tiles_stock")
-                        getString(resName)?.let {
-                            injectResource {
-                                conditions { name = resName; string() }
-                                replaceTo("$it,$fiveGSpec")
-                            }
-                        } ?: loggerW(msg = "ignored hook res R.string.$resName")
-                    }
-                }
-            }
-            injectMember {
-                method { name = "onTuningChanged" }
-                beforeHook {
-                    if (telephonyManager.isFiveGCapable.not()) {
-                        removeSelf()
-                        injectCreateTile.remove()
-                        injectQsStockTiles.remove()
-                        return@beforeHook
-                    }
-                    hookProxyTile()
-                    injectQsStockTilesRes()
                 }
             }
         }

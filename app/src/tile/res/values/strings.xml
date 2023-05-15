@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="xposed_description">For MIUI only, add 5G tile in the quick settings.\ncoolapk@yangyiyu08</string>
+</resources>
